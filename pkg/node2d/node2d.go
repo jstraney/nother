@@ -1,10 +1,12 @@
 package node2d
 
 import (
+	"encoding/json"
 	"sync"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/jstraney/nother/pkg/node"
+	"github.com/jstraney/nother/pkg/types"
 )
 
 // Node2D is an embeddable struct that implements the Node interface for 2D entities.
@@ -73,4 +75,31 @@ func (n *Node2D) GlobalPosition() rl.Vector2 {
 	}
 
 	return pos
+}
+
+type Node2DSerial struct {
+	node.BaseNodeSerial
+	Position types.Position2DSerial `json:"position"`
+}
+
+// UnmarshalJSON unmarshals JSON data into a Node2D using Node2DSerial as an intermediate.
+func (n *Node2D) UnmarshalJSON(data []byte) error {
+	var serial Node2DSerial
+	if err := json.Unmarshal(data, &serial); err != nil {
+		return err
+	}
+
+	// Initialize BaseNode if not already done
+	if n.BaseNode == nil {
+		n.BaseNode = node.NewBaseNode(serial.ID, serial.Name)
+	}
+
+	if err := n.BaseNode.UnmarshalJSON(data); err != nil {
+		return err
+	}
+
+	// Set 2D-specific position
+	n.SetPosition(rl.NewVector2(serial.Position.X, serial.Position.Y))
+
+	return nil
 }

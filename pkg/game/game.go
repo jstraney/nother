@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"sync"
@@ -28,12 +29,14 @@ type Config struct {
 // Game is the main game engine wrapper.
 // It orchestrates the AssetManager, SceneManager, and main game loop.
 type Game struct {
-	config        Config
-	assetManager  *asset.AssetManager
-	sceneManager  *scene.SceneManager
-	running       bool
-	lastFrameTime time.Time
-	mu            sync.RWMutex
+	config         Config
+	Serial         GameSerial
+	assetManager   *asset.AssetManager
+	sceneManager   *scene.SceneManager
+	running        bool
+	lastFrameTime  time.Time
+	DefaultSceneID string
+	mu             sync.RWMutex
 }
 
 // New creates a new Game instance with the given configuration.
@@ -56,10 +59,10 @@ func New(config Config) (*Game, error) {
 	}
 
 	return &Game{
-		config:       config,
-		assetManager: asset.New(config.AssetFS),
-		sceneManager: scene.New(),
-		running:      false,
+		config:        config,
+		assetManager:  asset.New(config.AssetFS),
+		sceneManager:  scene.New(),
+		running:       false,
 		lastFrameTime: time.Now(),
 	}, nil
 }
@@ -226,4 +229,57 @@ func (g *Game) WindowHeight() int32 {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 	return g.config.WindowHeight
+}
+
+type GameSerial struct {
+	WindowWidth    int32            `json:"windowWidth"`
+	WindowHeight   int32            `json:"windowHeight"`
+	WindowTitle    string           `json:"windowTitle"`
+	TargetFPS      int32            `json:"targetFPS"`
+	AssetDirectory string           `json:"asset_Directory"`
+	DefaultSceneID string           `json:"defaultSceneID"`
+	SceneFiles     []SceneFileEntry `json:"sceneFiles"`
+}
+
+type SceneFileEntry struct {
+	ID       string `json:"id"`
+	FilePath string `json:"filePath"`
+}
+
+// UnmarshalJSON unmarshals JSON data into a Game using GameSerial as an intermediate.
+// Note: This creates a new Game instance by calling New() with the deserialized config,
+// ensuring all validation and initialization logic is executed.
+func (g *Game) UnmarshalJSON(data []byte) error {
+	var serial GameSerial
+	if err := json.Unmarshal(data, &serial); err != nil {
+		return err
+	}
+
+	config := Config{
+		WindowWidth:  serial.WindowWidth,
+		WindowHeight: serial.WindowHeight,
+		WindowTitle:  serial.WindowTitle,
+		TargetFPS:    serial.TargetFPS,
+		AssetFS:      g.config.AssetFS, // Preserve existing AssetFS
+	}
+
+	// Create a new game with the deserialized config using New() for proper initialization
+	newGame, err := New(config)
+	if err != nil {
+		return err
+	}
+
+	newGame.Serial = serial
+	newGame.DefaultSceneID = serial.DefaultSceneID
+
+	// Copy the new game's state into the receiver (avoid copying the mutex)
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.config = newGame.config
+	g.assetManager = newGame.assetManager
+	g.sceneManager = newGame.sceneManager
+	g.running = newGame.running
+	g.lastFrameTime = newGame.lastFrameTime
+
+	return nil
 }

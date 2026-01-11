@@ -1,8 +1,9 @@
 package scene
 
 import (
+	"encoding/json"
+
 	"github.com/jstraney/nother/pkg/node"
-	"github.com/jstraney/nother/pkg/node2d"
 	"github.com/jstraney/nother/pkg/signal"
 )
 
@@ -11,7 +12,7 @@ import (
 type BaseScene struct {
 	id       string
 	paused   bool
-	rootNode *node2d.Node2D
+	rootNode node.Node
 }
 
 // NewBaseScene creates a new BaseScene with the given ID.
@@ -19,7 +20,7 @@ func NewBaseScene(id string) *BaseScene {
 	return &BaseScene{
 		id:       id,
 		paused:   false,
-		rootNode: node2d.New(id+"-root", "Root"),
+		rootNode: nil,
 	}
 }
 
@@ -41,6 +42,11 @@ func (s *BaseScene) SetName(name string) {
 // Root returns the root node.
 func (s *BaseScene) Root() node.Node {
 	return s.rootNode
+}
+
+// Set the scene root node
+func (s *BaseScene) SetRoot(rootNode node.Node) {
+	s.rootNode = rootNode
 }
 
 // Pause pauses the scene.
@@ -91,4 +97,24 @@ func (s *BaseScene) On(signalID string, callback signal.Callback) {
 // Off unsubscribes all callbacks from a signal using the global signal bus.
 func (s *BaseScene) Off(signalID string) {
 	signal.GlobalBus.Off(signalID)
+}
+
+type BaseSceneSerial struct {
+	ID       string    `json:"id"`
+	Paused   bool      `json:"paused"`
+	RootNode node.Node `json:"rootNode"`
+}
+
+// UnmarshalJSON unmarshals JSON data into a BaseScene using BaseSceneSerial as an intermediate.
+func (s *BaseScene) UnmarshalJSON(data []byte) error {
+	var serial BaseSceneSerial
+	if err := json.Unmarshal(data, &serial); err != nil {
+		return err
+	}
+
+	s.id = serial.ID
+	s.paused = serial.Paused
+	s.rootNode = serial.RootNode
+
+	return nil
 }

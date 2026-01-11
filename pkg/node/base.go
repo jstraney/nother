@@ -1,6 +1,7 @@
 package node
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -199,4 +200,33 @@ func (n *BaseNode) Lock() {
 // Unlock releases a write lock on the node's state.
 func (n *BaseNode) Unlock() {
 	n.mu.Unlock()
+}
+
+type BaseNodeSerial struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Parent   Node   `json:"parent"`
+	Children []Node `json:"children"`
+	Enabled  bool   `json:"enabled"`
+}
+
+// UnmarshalJSON unmarshals JSON data into a BaseNode using BaseNodeSerial as an intermediate.
+func (n *BaseNode) UnmarshalJSON(data []byte) error {
+	var serial BaseNodeSerial
+	if err := json.Unmarshal(data, &serial); err != nil {
+		return err
+	}
+
+	n.id = serial.ID
+	n.name = serial.Name
+	n.enabled = serial.Enabled
+
+	// Recursively unmarshal children
+	for _, childData := range serial.Children {
+		// Children are already deserialized by JSON unmarshaler
+		n.children = append(n.children, childData)
+		childData.SetParent(n)
+	}
+
+	return nil
 }

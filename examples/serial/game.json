@@ -1,0 +1,18 @@
+{
+  "window_width": 500,
+  "window_height": 300,
+  "window_title": "balrog",
+  "target_fps": 24,
+  "asset_directory": "./assets",
+  "default_scene_id": "main",
+  "scene_files": [
+    {
+      "id": "menu",
+      "file_path": "./menu.json"
+    },
+    {
+      "id": "main",
+      "file_path": "./main.json"
+    }
+  ]
+}
