@@ -81,7 +81,6 @@ func (r *Rect) Render() {
 	pos := r.GlobalPosition()
 	// Draw rectangle with top-left corner at position
 	rl.DrawRectangle(int32(pos.X), int32(pos.Y), int32(r.width), int32(r.height), r.fillColor)
-
 	// Render children
 	r.Node2D.Render()
 }

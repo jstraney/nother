@@ -28,7 +28,8 @@ func NewMainMenuScene(dispatcher *control.Dispatcher, onStartGame func()) *MainM
 
 // Load initializes the scene resources.
 func (m *MainMenuScene) Load() error {
-	root := m.Root().(*node2d.Node2D)
+	root := node2d.New("root", "root")
+	m.SetRoot(root)
 
 	// Create title label
 	m.titleLabel = gui.New("title", "Title")

@@ -70,7 +70,8 @@ func NewGameScene(dispatcher *control.Dispatcher, onGameOver func()) *GameScene 
 
 // Load initializes the scene resources.
 func (g *GameScene) Load() error {
-	root := g.Root()
+	root := node2d.New("root", "root")
+	g.SetRoot(root)
 
 	// Initialize ball
 	g.ballRadius = 5
